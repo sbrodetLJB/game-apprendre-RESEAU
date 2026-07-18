@@ -110,6 +110,10 @@ fi
 
 mkdir -p "$APP_DIR" "$SECRETS_DIR" "$APP_DIR/content"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+# useradd --create-home laisse $APP_DIR en 750 (accès refusé aux "autres") : nginx (www-data)
+# a besoin de le traverser pour servir frontend/dist. secrets/ reste protégé par ses fichiers
+# en 600, indépendamment de ce +x sur le répertoire parent.
+chmod o+x "$APP_DIR"
 
 # ============================================================================
 # 5. Récupération du code (dépôt applicatif + dépôt de contenu pédagogique)
