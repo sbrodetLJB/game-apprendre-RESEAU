@@ -1,5 +1,12 @@
 # MariaDB de production — distinct de docker-compose.yml (dev local, mot de passe vide). Lié
 # à 127.0.0.1 uniquement. Variables chargées depuis le .env généré par install.sh.
+#
+# `name:` explicite indispensable : sans lui, Docker Compose dérive le nom de projet du nom du
+# DOSSIER contenant ce fichier ("deploy"), identique à celui de tout autre module déployé sur la
+# même VM — collision réelle vécue avec game-apprendre-web (même projet implicite "deploy"),
+# qui a temporairement "adopté" ce conteneur MariaDB. Un nom de projet unique isole complètement
+# volumes/réseaux/conteneurs entre modules.
+name: game-apprendre-reseau
 services:
   mysql:
     image: mariadb:11
