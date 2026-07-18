@@ -17,6 +17,7 @@ log() { echo -e "\n\033[1;32m==>\033[0m $*"; }
 [ "$(id -u)" -eq 0 ] || { echo "Ce script doit être exécuté en root (sudo)." >&2; exit 1; }
 
 export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"
+git config --global --add safe.directory "$APP_REPO_DIR"
 
 log "Récupération de la dernière version ($GAME_REPO_BRANCH)"
 git -C "$APP_REPO_DIR" fetch origin

@@ -120,6 +120,10 @@ chmod o+x "$APP_DIR"
 # ============================================================================
 export GIT_TERMINAL_PROMPT=0
 export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"
+# Nécessaire dès la 2e exécution : après le premier `chown -R "$APP_USER"` ci-dessous, ce
+# dépôt appartient à un autre utilisateur que root, ce que git refuse par défaut (ownership
+# dubious) quand ce script tourne à nouveau.
+git config --global --add safe.directory "$APP_REPO_DIR"
 
 log "Récupération du dépôt applicatif"
 if [ -d "$APP_REPO_DIR/.git" ]; then
