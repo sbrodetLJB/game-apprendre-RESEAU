@@ -1,0 +1,24 @@
+# MariaDB de production — distinct de docker-compose.yml (dev local, mot de passe vide). Lié
+# à 127.0.0.1 uniquement. Variables chargées depuis le .env généré par install.sh.
+services:
+  mysql:
+    image: mariadb:11
+    container_name: game-apprendre-reseau-mysql-prod
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MARIADB_DATABASE: game_apprendre_reseau
+      MARIADB_USER: ${MYSQL_APP_USER}
+      MARIADB_PASSWORD: ${MYSQL_APP_PASSWORD}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:

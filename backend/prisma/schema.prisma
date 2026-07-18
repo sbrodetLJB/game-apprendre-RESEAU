@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  PROFESSEUR
+  ETUDIANT
+}
+
+model User {
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  password        String?
+  // Non utilisé en Phase 0 (pas de LDAP en standalone), conservé nullable pour compatibilité
+  // de schéma avec dashboard-ecole en vue de la fusion (Phase 7).
+  ldapDn          String?  @unique
+  name            String
+  role            Role     @default(ETUDIANT)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  // Étudiant : classe dans laquelle il est inscrit
+  studentClasseId Int?
+  studentClasse   Classe?  @relation("ClasseStudents", fields: [studentClasseId], references: [id])
+  // Professeur : classes dans lesquelles il enseigne
+  teachingClasses Classe[] @relation("ClasseTeachers")
+
+  submissions   Submission[]
+  progress      Progress[]
+  xpEntries     XpEntry[]
+  studentBadges StudentBadge[]
+}
+
+// Une classe d'étudiants
+model Classe {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  students  User[]   @relation("ClasseStudents")
+  teachers  User[]   @relation("ClasseTeachers")
+}
+
+// Une leçon du cours (théorie + PasAPas), importée depuis apprendre-les-bases-de-reseau.
+// Voir backend/scripts/import-content.ts : import ponctuel, pas de synchronisation continue.
+// Pas de champ gradingType : toutes les leçons de ce cours sont corrigées de la même façon
+// (comparaison texte, voir Exercise.testCasesJson) — aucune ne nécessite de relecture
+// professeur (contrairement aux modules C#/BDD).
+model Lesson {
+  id     Int    @id @default(autoincrement())
+  // Nom de fichier docs/ sans extension, ex. "05-masques-et-cidr" — identifiant stable.
+  slug   String @unique
+  // Ordre d'affichage (1 à 15), correspond au préfixe numérique des dossiers tp/ et docs/.
+  number Int    @unique
+  title  String
+
+  theoryMd  String  @db.LongText
+  pasAPasMd String? @db.LongText
+
+  // Tag ou SHA du dépôt apprendre-les-bases-de-reseau d'où cette ligne a été importée.
+  sourceRef String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exercise    Exercise?
+  submissions Submission[]
+  progress    Progress[]
+}
+
+model Exercise {
+  id       Int    @id @default(autoincrement())
+  lessonId Int    @unique
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // [{ path, content }] — tous les .txt de Enonce/ (un par exercice de la leçon), avec les
+  // lignes "Clé :" laissées vides.
+  enonceFiles Json
+  // [{ path, content }] — Corrigé complet. JAMAIS exposé via une route accessible aux étudiants.
+  solutionFiles Json
+  // { cases: [{name, referenceText, studentFileName}] } — texte de référence entièrement
+  // résolu à l'import (voir import-content.ts). Toujours présent (pas de leçon sans fixture).
+  testCasesJson Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SubmissionStatus {
+  AUTO_PASSED
+  AUTO_FAILED
+  // Anomalie d'infrastructure (fixture corrompue, etc.) — distincte d'un simple mauvais résultat.
+  ERROR
+}
+
+// Une tentative d'un étudiant sur une leçon. Corrigée de façon synchrone : le statut final
+// (AUTO_PASSED/AUTO_FAILED) est connu dès la création, pas de QUEUED/RUNNING.
+model Submission {
+  id        Int    @id @default(autoincrement())
+  studentId Int
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId  Int
+  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // [{ path, content }] — un fichier par exercice soumis par l'étudiant à cette tentative.
+  files Json
+
+  status SubmissionStatus
+  // { cases: [{name, passed, mismatches:[{field,expected,obtained}]}], total, passed }
+  resultDetail Json
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId, lessonId])
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Statut d'avancement d'un étudiant sur une leçon (dérivé de ses Submissions).
+model Progress {
+  id               Int            @id @default(autoincrement())
+  studentId        Int
+  student          User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId         Int
+  lesson           Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status           ProgressStatus @default(NOT_STARTED)
+  bestSubmissionId Int?
+  completedAt      DateTime?
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([studentId, lessonId])
+}
+
+// Ledger d'XP : jamais de compteur dénormalisé, le total et le niveau se calculent en sommant
+// à la lecture (voir backend/src/lib/gamification.ts).
+model XpEntry {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount    Int
+  // Ex. "lesson_completed:05-masques-et-cidr", "lesson_completed:05-masques-et-cidr:first_try"
+  reason       String
+  submissionId Int?
+  createdAt    DateTime @default(now())
+}
+
+// Catalogue de badges — upserté au démarrage du serveur (ensureBadgeCatalog).
+model Badge {
+  id            Int            @id @default(autoincrement())
+  key           String         @unique
+  label         String
+  description   String
+  iconKey       String
+  createdAt     DateTime       @default(now())
+  studentBadges StudentBadge[]
+}
+
+model StudentBadge {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badgeId   Int
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedAt DateTime @default(now())
+
+  @@unique([studentId, badgeId])
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=game-apprendre-RESEAU - Backend API (Node/Express)
+After=network.target
+
+[Service]
+Type=simple
+User={{APP_USER}}
+Group={{APP_USER}}
+WorkingDirectory={{APP_DIR}}/backend
+EnvironmentFile={{APP_DIR}}/backend/.env
+ExecStart=/usr/bin/node dist/src/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
