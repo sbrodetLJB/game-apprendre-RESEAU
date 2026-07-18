@@ -61,6 +61,9 @@ model Lesson {
 
   theoryMd  String  @db.LongText
   pasAPasMd String? @db.LongText
+  // Le pas-à-pas n'est envoyé à l'étudiant que si activé par un professeur (case décochée
+  // par défaut) — voir GET /lessons/:slug et "Suivi" (page enseignant).
+  pasAPasVisible Boolean @default(false)
 
   // Tag ou SHA du dépôt apprendre-les-bases-de-reseau d'où cette ligne a été importée.
   sourceRef String

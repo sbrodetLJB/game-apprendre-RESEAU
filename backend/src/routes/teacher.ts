@@ -29,7 +29,7 @@ router.get('/classes/:classeId/progress', async (req, res) => {
   }
 
   const lessons = await prisma.lesson.findMany({
-    select: { id: true, slug: true, number: true, title: true },
+    select: { id: true, slug: true, number: true, title: true, pasAPasVisible: true },
     orderBy: { number: 'asc' },
   });
   const studentIds = classe.students.map((s) => s.id);
@@ -46,6 +46,26 @@ router.get('/classes/:classeId/progress', async (req, res) => {
   }));
 
   res.json({ classe: { id: classe.id, name: classe.name }, lessons, students });
+});
+
+// Active/désactive l'affichage du pas-à-pas pour une leçon (décoché par défaut à l'import).
+router.patch('/lessons/:lessonId/pas-a-pas-visible', async (req, res) => {
+  const lessonId = Number(req.params.lessonId);
+  const { visible } = req.body as { visible?: boolean };
+  if (typeof visible !== 'boolean') {
+    return res.status(400).json({ message: 'visible doit être un booléen.' });
+  }
+
+  const lesson = await prisma.lesson.update({
+    where: { id: lessonId },
+    data: { pasAPasVisible: visible },
+    select: { id: true, pasAPasVisible: true },
+  }).catch(() => null);
+  if (!lesson) {
+    return res.status(404).json({ message: 'Leçon introuvable.' });
+  }
+
+  res.json(lesson);
 });
 
 // Détail d'un étudiant : statut par leçon, XP, soumissions récentes.

@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import {
   Alert,
   Box,
+  Checkbox,
   MenuItem,
   Paper,
   Stack,
@@ -31,7 +32,7 @@ type ProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
 interface ProgressMatrix {
   classe: { id: number; name: string };
-  lessons: { id: number; slug: string; number: number; title: string }[];
+  lessons: { id: number; slug: string; number: number; title: string; pasAPasVisible: boolean }[];
   students: {
     student: { id: number; name: string; email: string };
     lessons: { lessonId: number; slug: string; status: ProgressStatus }[];
@@ -70,6 +71,16 @@ export default function TeacherProgress() {
         setError(message ?? 'Impossible de charger la progression de cette classe.');
       });
   }, [classeId]);
+
+  const togglePasAPas = (lessonId: number, visible: boolean) => {
+    apiClient.patch(`/teacher/lessons/${lessonId}/pas-a-pas-visible`, { visible }).then(() => {
+      setMatrix((prev) =>
+        prev
+          ? { ...prev, lessons: prev.lessons.map((l) => (l.id === lessonId ? { ...l, pasAPasVisible: visible } : l)) }
+          : prev
+      );
+    });
+  };
 
   return (
     <Box>
@@ -112,6 +123,24 @@ export default function TeacherProgress() {
                 {matrix.lessons.map((lesson) => (
                   <TableCell key={lesson.id} align="center" title={lesson.title}>
                     {String(lesson.number).padStart(2, '0')}
+                  </TableCell>
+                ))}
+              </TableRow>
+              <TableRow>
+                <TableCell>
+                  <Typography variant="caption" color="text.secondary">
+                    Pas à pas visible
+                  </Typography>
+                </TableCell>
+                {matrix.lessons.map((lesson) => (
+                  <TableCell key={lesson.id} align="center" sx={{ p: 0 }}>
+                    <Tooltip title={`${lesson.pasAPasVisible ? 'Masquer' : 'Afficher'} le pas à pas de la leçon ${lesson.number}`}>
+                      <Checkbox
+                        size="small"
+                        checked={lesson.pasAPasVisible}
+                        onChange={(e) => togglePasAPas(lesson.id, e.target.checked)}
+                      />
+                    </Tooltip>
                   </TableCell>
                 ))}
               </TableRow>

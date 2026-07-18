@@ -43,13 +43,15 @@ router.get('/:slug', async (req, res) => {
       title: true,
       theoryMd: true,
       pasAPasMd: true,
+      pasAPasVisible: true,
       exercise: { select: { enonceFiles: true } },
     },
   });
   if (!lesson) {
     return res.status(404).json({ message: 'Leçon introuvable.' });
   }
-  res.json(lesson);
+  // Le pas-à-pas n'est envoyé que si un professeur l'a activé pour cette leçon.
+  res.json({ ...lesson, pasAPasMd: lesson.pasAPasVisible ? lesson.pasAPasMd : null });
 });
 
 // Correction synchrone : ce cours n'exécute rien (comparaison texte pure), le résultat final
