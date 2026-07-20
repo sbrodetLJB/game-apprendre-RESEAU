@@ -9,6 +9,9 @@ export const CHAPTERS = [
   { key: 'chapitre-4-commutation-vlan', label: 'Commutation et VLAN', from: 10, to: 11 },
   { key: 'chapitre-5-routage', label: 'Routage', from: 12, to: 13 },
   { key: 'chapitre-6-filtrage-synthese', label: 'Filtrage et synthèse', from: 14, to: 15 },
+  // Chapitre ajouté avec le contenu apprendre-reseau-avance (commandes Cisco IOS : config IP,
+  // VLAN, routage, ACL) — voir README de ce dépôt de contenu.
+  { key: 'chapitre-7-cisco', label: 'Cisco : IP, VLAN, routage et filtrage', from: 16, to: 19 },
 ] as const;
 
 interface BadgeDef {
@@ -34,7 +37,7 @@ const SPECIAL_BADGES: BadgeDef[] = [
   {
     key: 'tout-termine',
     label: 'Cours terminé',
-    description: 'Terminer les 15 leçons du cours.',
+    description: 'Terminer toutes les leçons du cours.',
     iconKey: 'trophy',
   },
 ];
